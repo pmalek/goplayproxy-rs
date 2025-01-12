@@ -1,0 +1,32 @@
+[package]
+name = "goplayproxy"
+version = "0.1.0"
+edition = "2021"
+authors = [ "@pmalek" ]
+description = "GoPlayProxy by @pmalek"
+license = "MIT"
+repository = "https://github.com/pmalek/goplayproxy-rs"
+
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1
+
+[package.metadata.release]
+release = false
+
+# https://github.com/rustwasm/wasm-pack/issues/1247
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker = { version="0.5.0", features=['http'] }
+worker-macros = { version="0.5.0", features=['http'] }
+console_error_panic_hook = { version = "0.1.1" }
+http = "1.1"
+env_logger = "0.10"
+log = "0.4"
+regex = "1.5"
