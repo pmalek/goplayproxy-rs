@@ -9,3 +9,7 @@ run:
 .PHONY: lint
 lint:
 	cargo fmt --all --check
+
+.PHONY: fmt
+fmt:
+	cargo fmt --all

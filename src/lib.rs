@@ -1,20 +1,40 @@
+use lazy_static::lazy_static;
 use log::info;
 use regex::Regex;
+use std::env;
 use worker::*;
 
 const BASE_URL: &str = "https://go.dev";
+const BLOG_DOMAIN: &str = "https://blog.pmalek.dev";
+const HUGO_LOCAL: &str = "http://localhost:1313";
+
+lazy_static! {
+    static ref RE_BLOG_DOMAIN: Regex =
+        Regex::new(r"https://.*--blog-malek-dev\.netlify\.app$").unwrap();
+}
 
 #[event(start)]
 fn start() {
+    console_log!("Starting");
     env_logger::init();
     console_error_panic_hook::set_once();
     // TODO: Logging doesn't work because RUST_LOG is not set
     info!("Worker started successfully!");
+    console_log!("RUST_LOG: {:?}", env::var("RUST_LOG"));
 }
+
+const HEADER_NAME_CONTENT_TYPE: &str = "Content-Type";
+const HEADER_NAME_ALLOW_ORIGIN: &str = "Access-Control-Allow-Origin";
 
 #[event(fetch)]
 async fn fetch(mut req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
+
+    let header_origin = req.headers().get("origin").unwrap();
+    match header_origin {
+        Some(_) => console_log!("Origin header: {:?}", header_origin),
+        None => return Err("Origin header is missing".into()),
+    }
 
     // Extract path and create target URL
     let url = format!("{}{}", BASE_URL, req.path());
@@ -22,7 +42,7 @@ async fn fetch(mut req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     // Get content type from request headers
     let content_type = req
         .headers()
-        .get("Content-Type")?
+        .get(HEADER_NAME_CONTENT_TYPE)?
         .unwrap_or_else(|| "application/octet-stream".into());
 
     // Log request details
@@ -39,7 +59,7 @@ async fn fetch(mut req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     init.with_method(Method::Post)
         .with_body(Some(body.into()))
         .with_headers(Headers::from_iter(vec![(
-            "Content-Type",
+            HEADER_NAME_CONTENT_TYPE,
             content_type.as_str(),
         )]));
 
@@ -58,18 +78,16 @@ async fn fetch(mut req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     // Create new response with the body and set the status
     let new_response = Response::from_bytes(body)?.with_status(response.status_code());
 
-    // TODO: make this static?
-    let re = Regex::new(r"https://.*--blog-malek-dev\.netlify\.app$").unwrap();
     // Add CORS header and copy other headers
     let mut headers = response.headers().clone();
 
-    match req.headers().get("origin") {
-        Ok(Some(origin)) => {
-            if origin == "https://blog.pmalek.dev"
-                || origin == "http://localhost:1313"
-                || re.is_match(origin.as_str())
+    match header_origin {
+        Some(origin) => {
+            if origin == BLOG_DOMAIN
+                || origin == HUGO_LOCAL
+                || RE_BLOG_DOMAIN.is_match(origin.as_str())
             {
-                headers.set("Access-Control-Allow-Origin", origin.as_str())?;
+                headers.set(HEADER_NAME_ALLOW_ORIGIN, origin.as_str())?;
             } else {
                 // TODO: maybe return an error?
             }
@@ -81,7 +99,7 @@ async fn fetch(mut req: Request, _env: Env, _ctx: Context) -> Result<Response> {
 
     // Copy headers from the proxied response
     for (key, value) in response_headers.entries() {
-        if key != "Access-Control-Allow-Origin" {
+        if key != HEADER_NAME_ALLOW_ORIGIN {
             headers.set(&key, &value)?;
         }
     }

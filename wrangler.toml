@@ -4,3 +4,6 @@ compatibility_date = "2025-01-12"
 
 [build]
 command = "cargo install -q worker-build && worker-build --release"
+
+[vars]
+RUST_LOG = "info"
