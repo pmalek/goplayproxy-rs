@@ -1,6 +1,6 @@
-use worker::*;
 use log::info;
 use regex::Regex;
+use worker::*;
 
 const BASE_URL: &str = "https://go.dev";
 
@@ -18,7 +18,7 @@ async fn fetch(mut req: Request, _env: Env, _ctx: Context) -> Result<Response> {
 
     // Extract path and create target URL
     let url = format!("{}{}", BASE_URL, req.path());
-    
+
     // Get content type from request headers
     let content_type = req
         .headers()
@@ -39,7 +39,8 @@ async fn fetch(mut req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     init.with_method(Method::Post)
         .with_body(Some(body.into()))
         .with_headers(Headers::from_iter(vec![(
-            "Content-Type", content_type.as_str(),
+            "Content-Type",
+            content_type.as_str(),
         )]));
 
     // Forward the request
@@ -55,8 +56,7 @@ async fn fetch(mut req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_log!("Response headers: {:?}", response_headers);
 
     // Create new response with the body and set the status
-    let new_response = Response::from_bytes(body)?
-        .with_status(response.status_code());
+    let new_response = Response::from_bytes(body)?.with_status(response.status_code());
 
     // TODO: make this static?
     let re = Regex::new(r"https://.*--blog-malek-dev\.netlify\.app$").unwrap();
@@ -65,9 +65,10 @@ async fn fetch(mut req: Request, _env: Env, _ctx: Context) -> Result<Response> {
 
     match req.headers().get("origin") {
         Ok(Some(origin)) => {
-            if origin == "https://blog.pmalek.dev" ||
-               origin == "http://localhost:1313" ||
-               re.is_match(origin.as_str()) {
+            if origin == "https://blog.pmalek.dev"
+                || origin == "http://localhost:1313"
+                || re.is_match(origin.as_str())
+            {
                 headers.set("Access-Control-Allow-Origin", origin.as_str())?;
             } else {
                 // TODO: maybe return an error?
