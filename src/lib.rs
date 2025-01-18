@@ -1,7 +1,6 @@
 use lazy_static::lazy_static;
-use log::info;
+use log::*;
 use regex::Regex;
-use std::env;
 use worker::*;
 
 const BASE_URL: &str = "https://go.dev";
@@ -15,30 +14,38 @@ lazy_static! {
 
 #[event(start)]
 fn start() {
-    console_log!("Starting");
-    env_logger::init();
-    console_error_panic_hook::set_once();
-    // TODO: Logging doesn't work because RUST_LOG is not set
-    info!("Worker started successfully!");
-    console_log!("RUST_LOG: {:?}", env::var("RUST_LOG"));
+    console_log!("Worker started successfully!");
+    // env_logger::init();
+    // env_logger::builder().filter_level(log::LevelFilter::Debug).init();
+    info!("XX Worker started successfully!");
 }
 
 const HEADER_NAME_CONTENT_TYPE: &str = "Content-Type";
 const HEADER_NAME_ALLOW_ORIGIN: &str = "Access-Control-Allow-Origin";
 const HEADER_NAME_ORIGIN: &str = "Origin";
 
-#[event(fetch)]
-async fn fetch(mut req: Request, _env: Env, _ctx: Context) -> Result<Response> {
+#[event(fetch, respond_with_errors)]
+pub async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
+    let router = Router::new();
+
+    router
+        .get_async("/", handler)
+        .head_async("/", handler)
+        .run(req, env)
+        .await
+}
+
+async fn handler(mut req: Request, _ctx: RouteContext<()>) -> Result<Response> {
     let header_origin = req.headers().get(HEADER_NAME_ORIGIN).unwrap();
     match header_origin {
         Some(_) => console_log!("Origin header: {:?}", header_origin),
         None => {
             console_log!("Missing origin header in request: {:?}", req);
-            return Ok(Response::builder().with_status(400).empty())
-        }
-        // None => return Err("Origin header is missing".into()),
+            return Response::error("Bad Request", 400);
+            // return Ok(Response::builder().with_status(400).empty())
+        } // None => return Err("Origin header is missing".into()),
     }
 
     // Extract path and create target URL
