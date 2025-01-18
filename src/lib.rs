@@ -25,12 +25,13 @@ fn start() {
 
 const HEADER_NAME_CONTENT_TYPE: &str = "Content-Type";
 const HEADER_NAME_ALLOW_ORIGIN: &str = "Access-Control-Allow-Origin";
+const HEADER_NAME_ORIGIN: &str = "Origin";
 
 #[event(fetch)]
 async fn fetch(mut req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
-    let header_origin = req.headers().get("origin").unwrap();
+    let header_origin = req.headers().get(HEADER_NAME_ORIGIN).unwrap();
     match header_origin {
         Some(_) => console_log!("Origin header: {:?}", header_origin),
         None => {
