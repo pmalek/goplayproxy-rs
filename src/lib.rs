@@ -39,8 +39,22 @@ pub async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
 
 async fn handler(mut req: Request, _ctx: RouteContext<()>) -> Result<Response> {
     let header_origin = req.headers().get(HEADER_NAME_ORIGIN).unwrap();
-    match header_origin {
-        Some(_) => console_log!("Origin header: {:?}", header_origin),
+    match &header_origin {
+        Some(value) => console_log!(
+            "{} {}, from: {} {} {} (origin: {})",
+            req.method().to_string(),
+            req.path(),
+            req.cf()
+                .unwrap()
+                .country()
+                .unwrap_or("unknown country".into()),
+            req.cf().unwrap().city().unwrap_or("unknown city".into()),
+            req.cf()
+                .unwrap()
+                .region()
+                .unwrap_or("unknown region".into()),
+            value,
+        ),
         None => {
             console_log!("Missing origin header in request: {:?}", req);
             return Response::error("Bad Request", 400);
