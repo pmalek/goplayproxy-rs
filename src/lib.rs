@@ -33,7 +33,11 @@ async fn fetch(mut req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     let header_origin = req.headers().get("origin").unwrap();
     match header_origin {
         Some(_) => console_log!("Origin header: {:?}", header_origin),
-        None => return Err("Origin header is missing".into()),
+        None => {
+            console_log!("Missing origin header in request: {:?}", req);
+            return Ok(Response::builder().with_status(400).empty())
+        }
+        // None => return Err("Origin header is missing".into()),
     }
 
     // Extract path and create target URL
