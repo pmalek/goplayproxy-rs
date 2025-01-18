@@ -1,10 +1,16 @@
+WRANGLER := npx wrangler
+
+.PHONY: wrangler
+wrangler:
+	pnpm install wrangler
+
 .PHONY: deploy
-deploy:
-	wrangler deploy --name goplayproxy
+deploy:  wrangler
+	$(WRANGLER) deploy --name goplayproxy
 
 .PHONY: run
-run:
-	wrangler dev
+run:  wrangler
+	$(WRANGLER) dev
 
 .PHONY: lint
 lint:
